@@ -13,7 +13,7 @@
 #define mat_print_pad(m,p) MAT_PRINT(m,#m,p)
 #define nn_print(nn) NN_PRINT(nn,#nn)
 #define nn_input(nn)  ((nn).a[0])
-#define nn_output(nn) ((nn).a[len(node_count)-1])
+#define nn_output(nn) ((nn).a[(nn).count])
 
 
 //Global variables
@@ -185,11 +185,41 @@ void nn_forward(NN nn){
     }
 }
 
+float nn_node_cost(float output, float expected_output){
+    //Using MSE (Mean Squared Error)
+    float error = expected_output - output;
+    return error*error;
+}
+
+float nn_output_cost(NN nn, Mat in, Mat expected_out){
+
+    float cost = 0;
+    mat_copy(nn_input(nn),in);
+    nn_forward(nn);
+    for(int i = 0; i < expected_out.cols; ++i){
+        //Expected output always has 1 row
+        cost += nn_node_cost(mat_at(nn_output(nn),0,i),mat_at(expected_out,0,i));
+    }
+
+    return cost;
+}
+
+float nn_cost(NN nn, Mat inputs, Mat expected_outputs){
+    float cost_total = 0;
+    for(int i = 0; i < inputs.rows; i++){
+        Mat input           = mat_submat(inputs,i,0,1,inputs.cols);
+        Mat expected_output = mat_submat(expected_outputs,i,0,1,expected_outputs.cols);
+        cost_total += nn_output_cost(nn,input,expected_output);
+    }
+    return cost_total/inputs.rows;
+}
+
 void nn_test(NN nn, Mat tr_in, Mat tr_out){
     printf("Results:\n");
     int padding = 2;
     for(int i = 0; i < tr_in.rows; ++i){
         Mat in = mat_submat(tr_in,i,0,1,tr_in.cols);
+        Mat out = mat_submat(tr_out,i,0,1,tr_out.cols);
         mat_copy(nn_input(nn),in);
         nn_forward(nn);
         MAT_PRINT(in,"INPUT",0);
@@ -231,8 +261,12 @@ int main(){
     Mat train_in  = mat_submat(tr,0,0,tr.rows,node_count[0]);
     Mat train_out = mat_submat(tr,0,node_count[0],tr.rows,node_count[len(node_count)-1]);
     
+    // printf("cost = %f\n",nn_cost(nn,train_in,train_out));
+    // nn.w[0].content[0] += 5;
+    // printf("cost = %f\n",nn_cost(nn,train_in,train_out));
+    
     //Testing the NN
-    nn_test(nn,train_in,train_out);
+    //nn_test(nn,train_in,train_out);
     
     //Printing final values
     // nn_print(nn);
