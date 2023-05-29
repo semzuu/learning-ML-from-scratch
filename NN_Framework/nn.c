@@ -7,14 +7,6 @@
 #include <time.h>
 #include <math.h>
 
-#define mat_at(m,i,j) (m).content[(i)*(m).cols+(j)]
-#define len(a) (sizeof(a) / sizeof((a)[0]))
-#define mat_print(m) MAT_PRINT(m,#m,0)
-#define mat_print_pad(m,p) MAT_PRINT(m,#m,p)
-#define nn_print(nn) NN_PRINT(nn,#nn)
-#define nn_input(nn)  ((nn).a[0])
-#define nn_output(nn) ((nn).a[(nn).count])
-
 
 //Global variables
 #define eps  1e-3
@@ -24,12 +16,25 @@
 #define min_rand 1
 
 //-------------------------------------------------------------------
+//Macros
+
+#define mat_at(m,i,j) (m).content[(i)*(m).cols+(j)]
+#define len(a) (sizeof(a) / sizeof((a)[0]))
+#define mat_print(m) MAT_PRINT(m,#m,0)
+#define mat_print_pad(m,p) MAT_PRINT(m,#m,p)
+#define nn_print(nn) NN_PRINT(nn,#nn)
+#define nn_input(nn)  ((nn).a[0])
+#define nn_output(nn) ((nn).a[(nn).count])
+
+//-------------------------------------------------------------------
 //Additional functions
 
 float rand_float(){
+    //Returns a random float
     return ((float)rand())/RAND_MAX;
 }
 float sigmoid(float x){
+    //Sigmoid function
     return 1.f/(1.f+expf(-x));
 }
 
@@ -37,11 +42,13 @@ float sigmoid(float x){
 //Matrix operations
 
 typedef struct {
+    //Structure of a matrix
     int rows, cols;
     float* content;
 } Mat;
 
 Mat mat_alloc(int rows, int cols){
+    //Allocates memory for a matrix
     Mat m;
     m.cols = cols;
     m.rows = rows;
@@ -51,6 +58,7 @@ Mat mat_alloc(int rows, int cols){
 }
 
 void mat_rand(Mat m){
+    //Randomizes the values of a matrix
     for(int i = 0; i < m.rows; ++i){
         for(int j = 0; j < m.cols; ++j){
             mat_at(m,i,j) = rand_float()*(max_rand-min_rand) + min_rand;
@@ -59,6 +67,7 @@ void mat_rand(Mat m){
 }
 
 void mat_sum(Mat res, Mat a){
+    //Sums two matrices
     assert(res.cols == a.cols);
     assert(res.rows == a.rows);
     for(int i = 0; i < res.rows; ++i){
@@ -68,15 +77,17 @@ void mat_sum(Mat res, Mat a){
     }
 }
 
-void mat_mult(Mat res, float scalaire){
+void mat_mult(Mat res, float scalar){
+    //Multiplies a matrix by a scalar
     for(int x = 0; x < res.rows; ++x){
         for(int y = 0; y < res.cols; ++y){
-            mat_at(res,x,y) *= scalaire;
+            mat_at(res,x,y) *= scalar;
         }
     }    
 }
 
 void mat_dot(Mat res, Mat a, Mat b){
+    //Multiplies two matrices
     assert(res.rows == a.rows);
     assert(res.cols == b.cols);
     
@@ -90,6 +101,7 @@ void mat_dot(Mat res, Mat a, Mat b){
 }
 
 void mat_sig(Mat res){
+    //Applies sigmoid function on all values of the matrix
     for(int i = 0; i < res.rows; ++i){
         for(int j = 0; j < res.cols; ++j){
             mat_at(res,i,j) = sigmoid(mat_at(res,i,j));
@@ -98,6 +110,7 @@ void mat_sig(Mat res){
 }
 
 void mat_reset(Mat res){
+    //Set all the values of a matrix to 0
     for(int i = 0; i < res.rows; ++i){
         for(int j = 0; j < res.cols; ++j){
             mat_at(res,i,j) = 0;
@@ -106,6 +119,7 @@ void mat_reset(Mat res){
 }
 
 void mat_copy(Mat dst, Mat a){
+    //Copies a matrix
     assert(dst.rows == a.rows);
     assert(dst.cols == a.cols);
     for(int i = 0; i < dst.rows; ++i){
@@ -116,6 +130,7 @@ void mat_copy(Mat dst, Mat a){
 }
 
 Mat mat_submat(Mat m, int start_row, int start_col, int row, int col){
+    //Creates a sub-matrix
     Mat sub = mat_alloc(row, col);
     for (int i = 0; i < row; i++) {
         for (int j = 0; j < col; j++) {
@@ -127,6 +142,7 @@ Mat mat_submat(Mat m, int start_row, int start_col, int row, int col){
 
 
 void MAT_PRINT(Mat m, char* name, int padding){
+    //Prints the matrix
     printf("%*s%s = [\n",padding,"",name);
     for(int i = 0; i < m.rows; i++){
         printf("\t");
@@ -142,6 +158,7 @@ void MAT_PRINT(Mat m, char* name, int padding){
 //NN operations
 
 typedef struct {
+    //Structure of a NN
     int count;
     Mat *a;//output not included in count
     Mat *w;
@@ -149,6 +166,7 @@ typedef struct {
 } NN;
 
 NN nn_alloc(int *node_count, int length){
+    //Allocates memory for a NN
     NN nn;
     nn.count = length-1;
     nn.a = malloc((sizeof(Mat))*(nn.count+1));
@@ -165,6 +183,7 @@ NN nn_alloc(int *node_count, int length){
 
 
 void NN_PRINT(NN nn, char* name){
+    //Prints the values of the weights and biases of an NN
     int padding = 4;
     printf("%s = [\n",name);
     for(int i = 0; i < nn.count; i++){
@@ -178,6 +197,7 @@ void NN_PRINT(NN nn, char* name){
 }
 
 void nn_rand(NN nn){
+    //Randomizes the weights and biases of an NN
     for(int i = 0; i < nn.count; i++){
         mat_rand(nn.w[i]);
         mat_rand(nn.b[i]);
@@ -185,6 +205,7 @@ void nn_rand(NN nn){
 }
 
 void nn_forward(NN nn){
+    //Calculates output based on input
     for(int i = 0; i < nn.count; ++i){
         mat_reset(nn.a[i+1]);
         mat_dot(nn.a[i+1],nn.a[i],nn.w[i]);
@@ -194,13 +215,14 @@ void nn_forward(NN nn){
 }
 
 float nn_node_cost(float output, float expected_output){
+    //Calculates the cost of a single output node
     //Using MSE (Mean Squared Error)
     float error = expected_output - output;
     return error*error;
 }
 
 float nn_output_cost(NN nn, Mat in, Mat expected_out){
-
+    //Calculates the cost of the NN for a single expected output
     float cost = 0;
     mat_copy(nn_input(nn),in);
     nn_forward(nn);
@@ -213,6 +235,7 @@ float nn_output_cost(NN nn, Mat in, Mat expected_out){
 }
 
 float nn_cost(NN nn, Mat inputs, Mat expected_outputs){
+    //Calculates the cost of the NN for all the expected outputs
     float cost_total = 0;
     for(int i = 0; i < inputs.rows; i++){
         Mat input           = mat_submat(inputs,i,0,1,inputs.cols);
@@ -224,6 +247,8 @@ float nn_cost(NN nn, Mat inputs, Mat expected_outputs){
 }
 
 float slope(NN nn, Mat inputs, Mat expected_outputs, Mat current, int x, int y){
+    //Calculates the difference in cost when changing the current value by a very small value 
+    //(Basically a derivative)
     float deltaOutput = nn_cost(nn,inputs,expected_outputs);
     float saved = mat_at(current,x,y);
 
@@ -236,6 +261,7 @@ float slope(NN nn, Mat inputs, Mat expected_outputs, Mat current, int x, int y){
 }
 
 Mat nn_slope(NN nn, Mat inputs, Mat expected_outputs,Mat current){
+    //Calculates the gradient for each layer's weights and biases
     Mat gradient = mat_alloc(current.rows,current.cols);
     for(int x = 0; x < current.rows; ++x){
         for(int y = 0; y < current.cols; ++y){
@@ -246,8 +272,8 @@ Mat nn_slope(NN nn, Mat inputs, Mat expected_outputs,Mat current){
 }
 
 void nn_gradient(NN nn, NN gradient, Mat inputs, Mat expected_outputs){
+    //Updates the gradient
     assert(nn.count == gradient.count);
-
     for(int i = 0; i < nn.count; ++i){
         assert(nn.w[i].rows == gradient.w[i].rows);
         assert(nn.w[i].cols == gradient.w[i].cols);
@@ -261,6 +287,7 @@ void nn_gradient(NN nn, NN gradient, Mat inputs, Mat expected_outputs){
 }
 
 void nn_learn(NN nn,NN gradient, Mat inputs, Mat expected_outputs){
+    //Modifying weights and biases to reduce cost
     nn_gradient(nn,gradient,inputs,expected_outputs);
     for(int i = 0; i < nn.count; ++i){
         mat_mult(gradient.w[i],rate);
@@ -271,6 +298,7 @@ void nn_learn(NN nn,NN gradient, Mat inputs, Mat expected_outputs){
 }
 
 void nn_test(NN nn, Mat tr_in, Mat tr_out){
+    //Test the inputs in the NN
     printf("Results:\n");
     int padding = 2;
     for(int i = 0; i < tr_in.rows; ++i){
@@ -291,7 +319,7 @@ int main(){
     
     //Setting the seed
     // srand(time(0));
-    srand(69);
+    srand(69); //¯\_(ツ)_/¯
     
     //Setting the training data
     float train[] = {
@@ -301,7 +329,6 @@ int main(){
         1,1, 0
         
     };
-    int data_count = 4;
     
     //Initializing the NN
     int node_count[] = {2,2,1};
@@ -310,27 +337,31 @@ int main(){
     nn_rand(nn);
     
     //Turning the data array into a matrix
-    Mat tr = mat_alloc(data_count,node_count[0]+node_count[len(node_count)-1]);
+    int data_count = len(train)/(node_count[0]+node_count[len(node_count)-1]);
+
+    Mat tr = {.rows = data_count, .cols = (node_count[0]+node_count[len(node_count)-1]), .content = train};    
+    /* an Alternative
+    Mat tr = mat_alloc(data_count,(node_count[0]+node_count[len(node_count)-1]));
     tr.content = train;
-    
+    */
+
     //Creating expected inputs and outputs
     Mat train_in  = mat_submat(tr,0,0,tr.rows,node_count[0]);
     Mat train_out = mat_submat(tr,0,node_count[0],tr.rows,node_count[len(node_count)-1]);
     
+    //Learning
     printf("cost = %f\n",nn_cost(nn,train_in,train_out));
-    // nn_print(d);
-    for(int i = 0; i < 1000*20; ++i){
+    for(int i = 0; i < learn_iters; ++i){
         nn_learn(nn,d,train_in,train_out);
     }
     printf("cost = %f\n",nn_cost(nn,train_in,train_out));
-    // nn_print(d);
     
     //Testing the NN
     printf("---------------------------------\n");
     nn_test(nn,train_in,train_out);
     
     //Printing final values
-    // nn_print(nn);
+    nn_print(nn);
     
     return 0;
 }
