@@ -27,7 +27,7 @@ int main(){
     };
     
     //Initializing the NN
-    int node_count[] = {4,4,1};
+    int node_count[] = {2,2,1};
     NN nn = nn_alloc(node_count,len(node_count));
     NN d = nn_alloc(node_count,len(node_count));
     nn_rand(nn,min,max);
