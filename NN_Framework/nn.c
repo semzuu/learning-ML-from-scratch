@@ -68,6 +68,14 @@ void mat_sum(Mat res, Mat a){
     }
 }
 
+void mat_mult(Mat res, float scalaire){
+    for(int x = 0; x < res.rows; ++x){
+        for(int y = 0; y < res.cols; ++y){
+            mat_at(res,x,y) *= scalaire;
+        }
+    }    
+}
+
 void mat_dot(Mat res, Mat a, Mat b){
     assert(res.rows == a.rows);
     assert(res.cols == b.cols);
@@ -211,7 +219,55 @@ float nn_cost(NN nn, Mat inputs, Mat expected_outputs){
         Mat expected_output = mat_submat(expected_outputs,i,0,1,expected_outputs.cols);
         cost_total += nn_output_cost(nn,input,expected_output);
     }
-    return cost_total/inputs.rows;
+    cost_total /= inputs.rows;
+    return cost_total;
+}
+
+float slope(NN nn, Mat inputs, Mat expected_outputs, Mat current, int x, int y){
+    float deltaOutput = nn_cost(nn,inputs,expected_outputs);
+    float saved = mat_at(current,x,y);
+
+    mat_at(current,x,y) += eps;
+    deltaOutput -= nn_cost(nn,inputs,expected_outputs);
+    mat_at(current,x,y) = saved;
+    
+    float slope = deltaOutput/eps;
+    return slope;
+}
+
+Mat nn_slope(NN nn, Mat inputs, Mat expected_outputs,Mat current){
+    Mat gradient = mat_alloc(current.rows,current.cols);
+    for(int x = 0; x < current.rows; ++x){
+        for(int y = 0; y < current.cols; ++y){
+            mat_at(gradient,x,y) = slope(nn,inputs,expected_outputs,current,x,y);
+        }
+    }
+    return gradient;
+}
+
+void nn_gradient(NN nn, NN gradient, Mat inputs, Mat expected_outputs){
+    assert(nn.count == gradient.count);
+
+    for(int i = 0; i < nn.count; ++i){
+        assert(nn.w[i].rows == gradient.w[i].rows);
+        assert(nn.w[i].cols == gradient.w[i].cols);
+        assert(nn.b[i].rows == gradient.b[i].rows);
+        assert(nn.b[i].cols == gradient.b[i].cols);
+        Mat ws = nn_slope(nn,inputs,expected_outputs,nn.w[i]);
+        mat_copy(gradient.w[i],ws);
+        Mat bs = nn_slope(nn,inputs,expected_outputs,nn.b[i]);
+        mat_copy(gradient.b[i],bs);
+    }
+}
+
+void nn_learn(NN nn,NN gradient, Mat inputs, Mat expected_outputs){
+    nn_gradient(nn,gradient,inputs,expected_outputs);
+    for(int i = 0; i < nn.count; ++i){
+        mat_mult(gradient.w[i],rate);
+        mat_sum(nn.w[i],gradient.w[i]);
+        mat_mult(gradient.b[i],rate);
+        mat_sum(nn.b[i],gradient.b[i]);
+    }
 }
 
 void nn_test(NN nn, Mat tr_in, Mat tr_out){
@@ -261,12 +317,17 @@ int main(){
     Mat train_in  = mat_submat(tr,0,0,tr.rows,node_count[0]);
     Mat train_out = mat_submat(tr,0,node_count[0],tr.rows,node_count[len(node_count)-1]);
     
-    // printf("cost = %f\n",nn_cost(nn,train_in,train_out));
-    // nn.w[0].content[0] += 5;
-    // printf("cost = %f\n",nn_cost(nn,train_in,train_out));
+    printf("cost = %f\n",nn_cost(nn,train_in,train_out));
+    // nn_print(d);
+    for(int i = 0; i < 1000*20; ++i){
+        nn_learn(nn,d,train_in,train_out);
+    }
+    printf("cost = %f\n",nn_cost(nn,train_in,train_out));
+    // nn_print(d);
     
     //Testing the NN
-    //nn_test(nn,train_in,train_out);
+    printf("---------------------------------\n");
+    nn_test(nn,train_in,train_out);
     
     //Printing final values
     // nn_print(nn);
