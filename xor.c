@@ -1,6 +1,6 @@
 
 #define NN_IMPLEMENTATION
-#include "nn.h"
+#include "./NN_Framework/nn.h"
 #include <stdio.h>
 #include <time.h>
 
@@ -16,7 +16,7 @@ int main(){
     const int max         = 1;
     const float eps       = 1e-1;
     const float rate      = 1e-1;
-    const int learn_iters = 1000*1;
+    const int learn_iters = 1000*10*2;
     
     //Setting the training data
     float train[] = {
@@ -34,7 +34,6 @@ int main(){
     
     //Turning the data array into a matrix
     int data_count = len(train)/(node_count[0]+node_count[len(node_count)-1]);
-    printf("data_count = %d\n",data_count);
     
     Mat tr = {.rows = data_count, .cols = (node_count[0]+node_count[len(node_count)-1]), .content = train};
     //Alternatively
@@ -49,8 +48,8 @@ int main(){
     printf("cost = %f\n",nn_cost(nn,train_in,train_out));
     for(int i = 0; i < learn_iters; ++i){
         nn_learn(nn,d,train_in,train_out,eps,rate);
-	printf("cost = %f\n",nn_cost(nn,train_in,train_out));
     }
+	printf("cost = %f\n",nn_cost(nn,train_in,train_out));
     
     
     //Testing the NN
